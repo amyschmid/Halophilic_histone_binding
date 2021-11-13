@@ -1,4 +1,4 @@
-Annotatepeaksandclassify.Rmd:
+# Annotatepeaksandclassify.Rmd:
 
 This is a modified version of code written by Rylee Hackley and Amy Schmid.
 
@@ -25,7 +25,7 @@ rtracklayer_1.50.0
 AnnotationHub_2.22.1 
 dplyr_1.0.7 
 
-Peaklocationplots.Rmd
+# Peaklocationplots.Rmd
 
 Simple code that generates bar plots from information about whether peaks are coding or intergenic.
 
