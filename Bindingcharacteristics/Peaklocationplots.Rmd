@@ -1,0 +1,33 @@
+---
+title: "Peaklocationtypegraphs"
+output: html_document
+---
+
+Takes an Excel file with the curated output from the Annotatepeaksandclassify.
+Also takes in percentage of each halophilic genome that is coding.
+
+```{r setup, warning=FALSE,message=FALSE}
+suppressPackageStartupMessages(library(readxl))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(forcats))
+#suppressPackageStartupMessages(library(dplyr))
+Peaklocations=read_excel("Peaklocations.xlsx",sheet="Input_2types")
+
+Hbt_coding=86.7
+Hvo_coding=84.1
+Hmed_coding=84.3
+Hca_coding=85.9
+```
+
+Plot
+
+```{r plot}
+
+#ggplot(Peaklocations,aes(y=Percentage,x=fct_inorder(TF)))+geom_bar(aes(fill=fct_inorder(Location)),stat="identity")+theme_bw()+scale_fill_manual(values=c("gray10","gray80"))
+
+ggplot(Peaklocations,aes(y=Percentage,x=fct_inorder(TF)))+geom_bar(aes(fill=fct_inorder(Location)),stat="identity")+theme_bw()+scale_fill_manual(values=c("gray10","gray80"))+geom_segment(x=0.5,xend=1.5,y=Hbt_coding,yend=Hbt_coding,colour="white",size=2,lty=6)+geom_segment(x=1.5,xend=3.5,y=Hvo_coding,yend=Hvo_coding,colour="white",size=2,lty=6)+geom_segment(x=3.5,xend=5.5,y=Hmed_coding,yend=Hmed_coding,colour="white",size=2,lty=6)+geom_segment(x=5.5,xend=7.5,y=Hca_coding,yend=Hca_coding,colour="white",size=2,lty=6)
+```
+
+```{r session}
+sessionInfo()
+```
