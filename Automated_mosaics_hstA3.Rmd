@@ -1,0 +1,72 @@
+---
+title: "Automated_mosaics_hstA3"
+output: html_document
+---
+
+```{r setup}
+library(mosaics)
+
+BAM_IP="hstAIP3"
+BAM_WCE="hstAWCE3"
+
+IPbins=200
+WCEbins=200
+```
+
+
+Loading BAM files, setting fragment length, constructing bins
+```{r construct_bins, results="hide", message=FALSE}
+constructBins(infile=paste(BAM_IP,"_sorted.bam",sep=""),fileFormat="bam",outfileLoc="./Mosaics_cap0_50",byChr=FALSE,binSize=IPbins,fragLen=IPbins,capping=0,PET=FALSE)
+
+constructBins(infile=paste(BAM_WCE,"_sorted.bam",sep=""),fileFormat="bam",outfileLoc="./Mosaics_cap0_50",byChr=FALSE,binSize=WCEbins,fragLen=WCEbins,capping=0,PET=FALSE)
+```
+
+Loading bins and examining data; reducing coverage by half to allow code to work
+```{r read_bins, results="hide", message=FALSE}
+IPtempname=paste("_sorted.bam","_fragL",as.character(IPbins),"_bin",as.character(IPbins),".txt",sep="")
+WCEtempname=paste("_sorted.bam","_fragL",as.character(WCEbins),"_bin",as.character(WCEbins),".txt",sep="")
+setwd("./Mosaics_cap0_50")
+filenames=c(paste(BAM_IP,IPtempname,sep=""),paste(BAM_WCE,WCEtempname,sep=""))
+
+bins=readBins(type=c("chip","input"),fileName=filenames)
+bins@tagCount=floor(bins@tagCount/2)
+bins@input=floor(bins@input/2)
+plot(bins)
+plot(bins,plotType="input")
+print(bins)
+```
+
+Fit the data to a model
+```{r mosaics_fit, results="hide", message=FALSE}
+fit=mosaicsFit(bins,analysisType="IO",bgEst="rMOM")
+```
+
+Examine the fit and choose the best singal components
+``` {r examine_fit, message=FALSE,echo=FALSE}
+fit
+plot(fit)
+
+if (fit@bic1S<fit@bic2S) {
+  sm="1S"
+} else {
+  sm="2S"
+}
+```
+
+Call peaks using the most suitable parameters based on the model fit, and export peaks to BED and txt output
+```{r peak_calling, results="hide", message=FALSE}
+peaks=mosaicsPeak(fit, signalModel=sm, FDR=0.05)
+```
+
+``` {r examine_peaks, echo=FALSE,message=FALSE}
+peaks
+head(print(peaks))
+setwd("./Mosaics_cap0_50")
+export(peaks,type="bed",filename=paste(BAM_IP,"_peaks",".bed",sep=""))
+export(peaks,type="txt",filename=paste(BAM_IP,"_peaks",".txt",sep=""))
+setwd("../")
+```
+
+```{r session}
+sessionInfo()
+```
