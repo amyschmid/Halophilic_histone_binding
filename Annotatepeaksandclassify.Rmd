@@ -1,0 +1,161 @@
+---
+title: "Annotatepeaksandclassify"
+author: "Saaz Sakrikar"
+date: "10/17/2021"
+output: html_document
+---
+
+##Annotating peaks!
+Annotation code adapted from code made by Amy Schmid and Rylee Hackley.
+
+
+### Call libraries of packages (install these too if haven't already)
+```{r load_libraries,warning=FALSE,message=FALSE}
+library(tidyverse)
+library(GenomicRanges)
+library(GenomicFeatures)
+library(IRanges)
+library(openxlsx)
+library(rtracklayer)
+library(AnnotationHub)
+library(dplyr)
+library(rapportools)
+#library(readxl)
+
+```
+
+
+### Read in GFF files of annotations for Hvo
+see also https://stackoverflow.com/questions/29253412/finding-intergenic-regions
+
+```{r import_files_setup,warning=FALSE,message=FALSE}
+Name="HstA_annotated"
+gff <- GenomicFeatures::makeTxDbFromGFF("20181113_hvol_GCF_000025685.1_ASM2568v1_genomic.gff", format = "gff")
+gff.df <- read_csv("20181113_hvol_GCF_000025685.1_ASM2568v1_genomic.gff.key.csv")
+
+#subset whole genome gff into promoter only (i.e. intergenic ranges) and gene only structures
+#"columns="txname"" added for GenomicFeatures version 1.44.2
+genes.only <- GenomicFeatures::genes(gff,columns="tx_name")
+genes.only.redu <- reduce(genes.only, ignore.strand = T)
+ig <- gaps(genes.only.redu)
+ig.only <- ig[strand(ig) == "*"] ## This step is important to avoid duplicate entries for each gene.
+
+pro500 <- GenomicRanges::promoters(genes.only, upstream = 500, downstream = 0)
+
+#import peaklist gff file and convert to dataframe
+pks <- rtracklayer::import(con="HstA_curatedlist.bed", format="BED")
+pks.df <- as.data.frame(pks)
+  
+#add informative meta data
+pks$peakID <- seq(1,length(pks))
+pks$peakwidth <- pks.df$width
+  
+  
+#pro250 <- GenomicRanges::promoters(genes.only, upstream = 250, downstream = 0)
+## Warning: this range of sequences misses large promoters and 3' UTRs (i.e. some IG space is skipped in the overlaps with ChIP-seq peaks)
+```
+
+
+### Find overlaps between peak genomic ranges and custom annotation objects (promoters vs genes)
+```{r}
+  
+  
+#create hits objects of the overlaps (all peak widths have been standardized to 300bp wide. The must overlap a genomic feature by at least one third (100bps) to be called.) adjusting the overlap requirement changes the stringency of my peak annotation. 
+GenomicRanges::findOverlaps(genes.only, pks, ignore.strand=T, minoverlap = 100) -> genes
+GenomicRanges::findOverlaps(ig.only, pks, ignore.strand=T, minoverlap = 100) -> promoters
+GenomicRanges::findOverlaps(pro500, pks, ignore.strand = T, minoverlap = 100) -> promoters2
+  
+#get IRanges from hits objects and add informative metadata
+genelist <- genes.only[queryHits(genes)] 
+genelist$type <- rep("genic", length(genes))
+genelist$reps <- pks$name[subjectHits(genes)]
+pintersect(genes.only[queryHits(genes)], pks[subjectHits(genes)]) -> overlaps
+genelist$overlap <- width(overlaps)
+genelist$peakID <- pks$peakID[subjectHits(genes)]
+genelist$pk.start <- pks.df$start[subjectHits(genes)]
+genelist$pk.end <- pks.df$end[subjectHits(genes)]
+
+  
+prolist <- ig.only[queryHits(promoters)]
+prolist$type <- rep("promoter", length(promoters))
+prolist$reps <- pks$name[subjectHits(promoters)]
+pintersect(ig.only[queryHits(promoters)], pks[subjectHits(promoters)]) -> overlaps
+prolist$overlap <- width(overlaps)
+prolist$peakID <- pks$peakID[subjectHits(promoters)]
+#prolist$gene_id <- NA
+prolist$pk.start <- pks.df$start[subjectHits(promoters)]
+prolist$pk.end <- pks.df$end[subjectHits(promoters)]
+
+  
+prolist2 <- pro500[queryHits(promoters2)]
+prolist2$type <- rep("promoter500", length(promoters2))
+prolist2$reps <- pks$name[subjectHits(promoters2)]
+pintersect(pro500[queryHits(promoters2)], pks[subjectHits(promoters2)]) -> overlaps
+prolist2$overlap <- width(overlaps)
+prolist2$peakID <- pks$peakID[subjectHits(promoters2)]
+prolist2$pk.start <- pks.df$start[subjectHits(promoters2)]
+prolist2$pk.end <- pks.df$end[subjectHits(promoters2)]
+
+  
+#convert seperate IRanges to Dataframes
+seqs <- seq(1, length(genes))
+as.data.frame(prolist) -> one
+rownames(one) <- NULL
+as.data.frame(genelist, row.names(seqs)) -> two
+rownames(two) <- NULL
+as.data.frame(prolist2) -> three
+rownames(three) <- NULL  
+  
+#combine dfs (gene hits and promoter hits)
+final <- dplyr::bind_rows(one, two, three) %>% arrange(seqnames, start, peakID)
+colnames(final) <- c("seqnames","overlap.start", "overlap.end", "overlap", "strand", "type", "reps", "pk.width", "peakID", "pk.start","pk.stop", "locus_tag")
+final$locus_tag=as.character(final$locus_tag)
+
+#merge with gff information (get NCBI annotations and locus names)
+gff.df[gff.df$locus_tag %in% final$locus_tag,] -> tmp
+
+tmp[c(2,3,4,6,7,10)] -> tmp2
+left_join(final, tmp2, by = "locus_tag", na.rm=TRUE) -> final
+colnames(final)=c("seqnames","overlap.start", "overlap.end", "overlap", "strand", "type", "reps", "pk.width", "peakID", "pk.start","pk.stop", "locus_tag","acc","old_locus_tag","gene.start","gene.stop","annotation")
+
+  
+#reorder
+final <- final[c(1,9,10,11,8,7,14,5,6,2,3,4,12,17,15,16,13)]
+
+#write to excel file, storing results for each .gff as a different sheet (in the case where multiple peak lists, e.g. between conditions, are used)
+#write.xlsx(final, "HstA_annotatedlist.xlsx", rowNames = F)
+```
+
+Obtain a classification of each peak as either genic or promoter - in case both are found for a given peak, the feature with the greater overlap is chosen. If the overlaps also are equal, both fdeatures are counted.
+
+```{r classify}
+annotatedlist=final
+
+l=length(annotatedlist$seqnames)
+flag="TRUE"
+annotatedlist$Flag=flag
+
+#Finding best annotation for each peak.
+for (i in (1:l)) {
+  relID=annotatedlist$peakID[i]
+  indices=which(annotatedlist$peakID==relID)
+  
+  if (length(indices)>1) {
+    sublist=annotatedlist[indices,]
+    annotatedlist$Flag[indices]="FALSE"
+    relindex=which.max(sublist$overlap)
+    relindex=indices[relindex]
+    annotatedlist$Flag[relindex]="TRUE"
+  }
+}
+annotatedlist=annotatedlist[annotatedlist$Flag=="TRUE",]
+
+#Displaying results
+table(annotatedlist$type)
+#write.xlsx(annotatedlist,paste(Name,"_locations.xlsx"))
+
+```
+
+```{r}
+sessionInfo()
+```
