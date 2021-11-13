@@ -33,8 +33,4 @@ That information is generated from the code above (Annotatepeaksandclassify.Rmd)
 
 Library dependencies:
 
-forcats_0.5.1 
-
-ggplot2_3.3.5
-
-readxl_1.3.1
+forcats_0.5.1 ggplot2_3.3.5 readxl_1.3.1
