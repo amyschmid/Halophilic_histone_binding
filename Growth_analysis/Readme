@@ -1,4 +1,11 @@
 Visualisation and analysis of growth data for the parent strain (also known as WT, Hv28, or pyrE) and the mutant strain (also known as KO, Hv253, or hstA) collected fromm a Bioscreen plate-reader.
 Visualisation of the raw growth curves for all replicates, as well as analysis using grofit R package, and visualisation of growth rate (umax) as determined by Grofit.
-
+Code written and executed in R version 4.0.3
 Dependencies:
+reshape2_1.4.4
+readxl_1.3.1
+openxlsx_4.2.4 
+grofit_1.1.1-1
+ggsignif_0.6.3
+forcats_0.5.1
+ggplot2_3.3.5
