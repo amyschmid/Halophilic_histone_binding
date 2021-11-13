@@ -1,5 +1,5 @@
 ChIPSeqenrichment_combined.Rmd
-Visualising ChIP-Seq based on read depth ratio (IP/Input or Whole Cell Extract). Read depth txt files are generated as intermediates by Mosaics (as described in the Peakcalling subfolder readme). These contain avg depth info for every 200bp bin. The code takes the ratio of depth for bins generated from the IP and WCE (input control). 
+Visualising ChIP-Seq based on read depth ratio (IP/Input or Whole Cell Extract). Read depth txt files are generated as intermediates by Mosaics (as described in the Peak_calling subfolder Readme). These contain avg depth info for every 200bp bin. The code takes the ratio of depth for bins generated from the IP and WCE (input control). 
 The visualisation is done for the main chromosome of the archaeal species and Chr VII of S cerevisiae.
 Note: In the case of Hbt sal HpyA and Hfx vol HstA, regions of the genome known to generate false positive peaks (peaks present in tag-alone negative control IP, peaks caused by local deletions, uneven converage, or transposase activity) are smoothed out. The precise location of these are noted within the code. 
 Input dependencies:
