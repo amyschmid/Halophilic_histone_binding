@@ -1,0 +1,8 @@
+Peakcalling.Rmd
+Calls ChIP-Seq peaks based on Sorted BAM files. Sorted BAM files are the only input dependencies, they are too large to be uploaded here, but can be generated based on the method described in the readme of the parent directory.
+Peak-calling is done by Mosaics https://bioconductor.org/packages/release/bioc/html/mosaics.html
+The bin files generated as an intermediate by this code (hstAIP3_sorted.bam_fragL200_bin200 for example) are used for visualisation of the ChIP-Seq data (as described in the ChIPSeq_visualisation folder).
+Note - in the case of HstA, a 50% reduction in coverage was used before peak-calling. A more detailed explanation and justification is provided within the code itself. For other TFs, such a reduction was not found to be necessary.
+Library dependency:
+mosaics_2.28.0
+Rcpp_1.0.7
