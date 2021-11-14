@@ -5,4 +5,4 @@ Evaluates the periodicity of nucleosome sequences. Location of these nucleosomes
 Input dependencies: Supplementary tables from the 3 papers containing nucleosome centres, genome sequence for the 3 species downloaded from NCBI. R codes: convertseqtobinary_AATTTA2.R, convertnucleosomecentrestobinary.R, convertnucleosomecentrestobinary2.R, convertnucleosomecentrestobinary3.R.
 
 Library dependencies: 
-pracma_2.3.3 seqinr_4.2-8 readxl
+pracma_2.3.3 seqinr_4.2-8 readxl_1.3.1
