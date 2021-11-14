@@ -1,0 +1,75 @@
+---
+title: "autoFT2_combined"
+output: html_document
+---
+The code below can perform the autoregression Fourier transform analysis of genome-wide dinculeotide frequencies (AA/TT/TA). The only inputs are the downloaded FASTA file and the name of the main chromosome (naming convention needs to match that of the downloaded Fasta).
+In this  case, genomes of 1 representative species each of an archaea with histone, a non-halophilic archaea without histone, and a halophilic archaea are used to generate a figure like Fig. 5A.
+
+Load the genome fasta and select the chromosome.
+```{r Input_setup}
+suppressPackageStartupMessages(library(seqinr))
+suppressPackageStartupMessages(library(pracma))
+
+source("convertseqtobinary_AATTTA.R")
+
+#Info for species with characterised histone
+fasta_histone="Mfervidus.fna"
+chromosome_histone="NC_014658.1"
+speciesname_histone="Methanothermus_fervidus"
+
+#Info for species with no histone gene/non-histone chromatin
+fasta_nohist="Sulfolobus_s.fna"
+chromosome_nohist="NZ_LT549890.1"
+speciesname_nohist="Sulfolobus_solfataricus"
+
+#Info for halophile species
+fasta_halo="Hbtsal.fna"
+chromosome_halo="NC_002607.1"
+speciesname_halo="Hbt_salinarum"
+
+genome_histone=read.fasta(paste(fasta_histone))
+chr_histone=genome_histone[paste(chromosome_histone)]
+
+genome_nohist=read.fasta(paste(fasta_nohist))
+chr_nohist=genome_nohist[paste(chromosome_nohist)]
+
+genome_halo=read.fasta(paste(fasta_halo))
+chr_halo=genome_halo[paste(chromosome_halo)]
+
+```
+
+Convert the chromosome sequence into a binary (1 where the dinucleotide is AA or TT or TA, 0 otherwise)
+Get the periodicity of these dinucleotides
+
+``` {r AATTTA_periodicity,fig.show="hide"}
+
+chrbinary_AATTTA_histone=convertseqtobinary_AATTTA(chr_histone[[1]])
+chrbinary_AATTTA_nohist=convertseqtobinary_AATTTA(chr_nohist[[1]])
+chrbinary_AATTTA_halo=convertseqtobinary_AATTTA(chr_halo[[1]])
+
+
+Histonespecies_AATTTA=spec.ar(chrbinary_AATTTA_histone)
+Nohistspecies_AATTTA=spec.ar(chrbinary_AATTTA_nohist)
+Halopecies_AATTTA=spec.ar(chrbinary_AATTTA_halo)
+```
+
+Plot the results together on a graph. As with Fig 5A, histone-containing species is in red, species without histone or with non-histone chromain is in blue, and halophile species is in black.
+```{r plotting}
+plot(Histonespecies_AATTTA$spec[,1],type="l",col="red",ylim=c(0,0.5),lwd=2)
+lines(Nohistspecies_AATTTA$spec[,1],col="blue",lwd=2)
+lines(Halopecies_AATTTA$spec[,1],lwd=2)
+```
+
+
+Find where the peak near 10/11bp is present. Doing this for histone-containing species where the peak is present.
+``` {r Find_peaks}
+Histonepeakloc=findpeaks(Histonespecies_AATTTA$spec[85:105,1])
+actualhistonepeakloc=Histonepeakloc[,2]+84
+Histoneperiodicity=1/Histonespecies_AATTTA$freq[actualhistonepeakloc]
+print(speciesname_histone)
+print(Histoneperiodicity)
+```
+
+```{r session}
+sessionInfo()
+```
