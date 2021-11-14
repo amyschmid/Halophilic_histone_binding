@@ -1,0 +1,64 @@
+---
+title: "FT of random sequences for comparison (new)"
+output:
+  html_document:
+    df_print: paged
+---
+
+Generate sequences of a particular length (~=avg peak width) randomly from the genome (using main chromosome only for convenience and because only 5 of 62 peaks are in plasmids). Combine all these sequences together, as was done for the real peaks, and do the power spectru of the combination. Repeat this 100 times to get a nice sample.
+Check the periodicity peak of each of these instances, and compare it to the known periodicity of the actual HpyA peaks (10.3bp).
+
+```{r setup_inputs}
+library(seqinr)
+library(pracma)
+
+source("generaterndomsequences.R")
+source("convertseqtobinary_AATTTA.R")
+
+NCBIgenome="Hbtsal.fna"
+numberofregions=59
+lengthofregions=300
+```
+
+``` {r generate_spectra}
+spec=matrix(data=NA,nrow=100,ncol=500)
+spec_GC=matrix(data=NA,nrow=100,ncol=500)
+
+for (i in (1:100)) {
+  spectra=generaterndomsequences(NCBIgenome,numberofregions,lengthofregions)
+  spec[i,]=spectra$spec[,1]
+}
+```
+
+``` {r analysgeneratedspectra}
+
+relevantpeak=matrix(data=NA,nrow=100,ncol=2)
+
+for (j in (1:100)) {
+  peak=findpeaks(spec[j,85:115])
+  if (length(peak[,1])>1) {
+    bestpeakloc=which.max(peak[,1])
+    relevantpeak[j,1]=peak[bestpeakloc,1]
+    relevantpeak[j,2]=peak[bestpeakloc,2]
+  }
+  if (length(peak[,1])==1){
+    relevantpeak[j,1]=peak[,1]
+    relevantpeak[j,2]=peak[,2]
+   }
+  if (is.null(peak)) {
+    relevantpeak[j,1]=0
+    relevantpeak[j,2]=10
+  }
+}
+
+relevantpeak[,2]=relevantpeak[,2]+84
+relevantpeak[,2]=1000/relevantpeak[,2]
+```
+
+Make a plot with the location and height of each peak. Add the HpyA-bound regions as a separate point in red.
+
+``` {r plot_results}
+
+plot(relevantpeak[,2],relevantpeak[,1],pch=20,cex=0.75)
+points(1000/97,0.081,type="p",col="red",pch=24,cex=1.5)
+```
