@@ -1,0 +1,82 @@
+---
+title: "Periodicity_of_nucleosome_sequences_combined"
+author: "Saaz_Sakrikar"
+date: "7/29/2020"
+output: html_document
+---
+
+Made for a list of nucleosome centre locations in the genome. Requires the table of positions, and the fna genome sequence from NCBI. Picks out top 25% of nucleosomes (based on signal/noise ratio), if score is provided. Maps these back to the genome, by picking out histonesize around each centre. Concatenates all these strings from each nucleosome, and converts this into a binary based on AA/TT/TA presence (1 if dinucleotide is present, 0 otherwise). Finally, find the periodicity of this sequence using autoregression spectra.
+
+This code combines the 3 inputs: Yeast histone from Widom et al Table S2, Hvo protected sites from Ammar et al eLife 2012 Table "Archaeal_browser_track_2N.bed", Thermococcus kodakarensis histone from Maruyama et al Table S4
+
+```{r setup, warning=FALSE,error=FALSE}
+#Load required libraries and scripts
+library(seqinr)
+library(pracma)
+library(readxl)
+
+source("convertseqtobinary_AATTTA2.R")
+source("convertnucleosomecentrestobinary.R")
+source("convertnucleosomecentrestobinary2.R")
+source("convertnucleosomecentrestobinary3.R")
+```
+
+
+```{r load_data}
+#Data for this run
+
+Yeast_histonelength=160
+Yeast_Nucleosomelist="Widom2012_S2.xlsx"
+Yeast_Genome="GCF_000146045.2_R64_genomic.fna"
+
+Hvo_histonelength=60
+Hvo_Nucleosomelist="Ammar_centres.xlsx"
+Hvo_Genome="Hfxvol.fna"
+
+Thermok_histonelength=60
+Thermok_Nucleosomelist="MaruyamaS4combined.xlsx"
+Thermok_Genome="Thermok.fna"
+
+```
+
+This is the script that takes the table and converts it into a binary indicating the presence of AA/TT/TA dinucleotides.
+spec.ar is the autoregression spectra of these dinucleotides for all the nucleosomes put together.
+
+```{r periodicity_calculation,fig.show="FALSE"}
+Yeast_allnucleosomesbinary=convertnucleosomecentrestobinary(Yeast_Nucleosomelist,Yeast_Genome,Yeast_histonelength)
+Yeast_ARofnucleosomes=spec.ar(Yeast_allnucleosomesbinary)
+
+Hvo_allnucleosomesbinary=convertnucleosomecentrestobinary2(Hvo_Nucleosomelist,Hvo_Genome,Hvo_histonelength)
+Hvo_ARofnucleosomes=spec.ar(Hvo_allnucleosomesbinary)
+
+Thermok_allnucleosomesbinary=convertnucleosomecentrestobinary3(Thermok_Nucleosomelist,Thermok_Genome,Thermok_histonelength)
+Thermok_ARofnucleosomes=spec.ar(Thermok_allnucleosomesbinary)
+```
+
+Plot the 3 lines together
+```{r plotting}
+#Self-normalization for better visualisation
+Yeast_normAR=Yeast_ARofnucleosomes$spec[,1]/mean(Yeast_ARofnucleosomes$spec[,1])
+Hvo_normAR=Hvo_ARofnucleosomes$spec[,1]/mean(Hvo_ARofnucleosomes$spec[,1])
+Thermok_normAR=Thermok_ARofnucleosomes$spec[,1]/mean(Thermok_ARofnucleosomes$spec[,1])
+
+plot(Yeast_normAR,type="l",lwd=2,col="forestgreen",ylim=c(0.5,1.8))
+lines(Hvo_normAR,lwd=2)
+lines(Thermok_normAR,lwd=2,col="red")
+
+```
+
+Locating the precise location of the ~10bp peaks seen in the AR spectrum.
+```{r precise_location_of_peak}
+Yeast_peaklocs=findpeaks(Yeast_ARofnucleosomes$spec[90:110,1])
+Yeast_actualpeakloc=Yeast_peaklocs[,2]+89
+Yeast_Periodicity=1/Yeast_ARofnucleosomes$freq[Yeast_actualpeakloc]
+print("Yeast")
+print(Yeast_Periodicity)
+
+Thermok_peaklocs=findpeaks(Thermok_ARofnucleosomes$spec[90:110,1])
+Thermok_actualpeakloc=Thermok_peaklocs[,2]+89
+Thermok_Periodicity=1/Thermok_ARofnucleosomes$freq[Thermok_actualpeakloc]
+print("Thermok")
+print(Thermok_Periodicity)
+```
