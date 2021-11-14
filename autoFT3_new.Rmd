@@ -1,0 +1,73 @@
+---
+title: "autoFT3_new"
+output: html_document
+---
+The code below performs the autoregression Fourier transform analysis of genome-wide dinculeotide frequencies (AA/TT/TA) for Hbt salinarum, and also for the parts of the Hbt sal genome bound by HpyA. The resultant curves are plotted and compared.
+The only inputs are the downloaded FASTA file, the name of the main chromosome (naming convention needs to match that of the downloaded Fasta), and a manually created fasta file containing all the HpyA-bound sequences. This was generated from a .bed file containing HpyA peak information using the getfasta command of bedtools. The multi-line fasta file generated was converted to a single line using 
+grep -v "^>" allpeaks.fasta | awk 'BEGIN { ORS=""; print ">Sequence_name\n" } { print }' > HpyApeak_1line.fasta
+
+This generates Fig. 6A, same code was used to also generate Fig.6C from HstA/Hfxvol data.
+
+
+Load the genome fasta and select the chromosome.
+```{r Input_setup}
+suppressPackageStartupMessages(library(seqinr))
+suppressPackageStartupMessages(library(pracma))
+
+source("convertseqtobinary_AATTTA.R")
+
+genomefasta="Hbtsal.fna"
+chromosome="NC_002607.1"
+speciesname="Halobacteriumsalinarum"
+peakfasta="HpyApeak_1line.fasta"
+
+genome=read.fasta(paste(genomefasta))
+chr=genome[paste(chromosome)]
+peaks=read.fasta(paste(peakfasta))
+peakseq=peaks["Allpeaks"]
+```
+
+Convert the chromosome sequence into a binary (1 where the dinucleotide is AA or TT or TA, 0 otherwise)
+Get the periodicity of these dinucleotides
+``` {r genomewide_periodicity,fig.show="hide"}
+
+chrbinary_AATTTA=convertseqtobinary_AATTTA(chr[[1]])
+
+name1=paste(speciesname,"AATTTA",sep="_")
+assign(paste(name1),spec.ar(chrbinary_AATTTA))
+```
+
+Convert the HpyA-bound sequence into a binary (1 where the dinucleotide is AA or TT or TA, 0 otherwise)
+Get the periodicity of these dinucleotides
+``` {r peak_periodicity,fig.show="hide"}
+
+peakbinary_AATTTA=convertseqtobinary_AATTTA(peakseq[[1]])
+HpyA_AATTTA=spec.ar(peakbinary_AATTTA)
+```
+
+Plot both curves together, with HpyA-bound loci as solid line and chromosome-wide dashed.
+```{r plot}
+Genomespec=get(paste(name1))
+Boundspec=HpyA_AATTTA
+
+#Self-normalizzation for better visualisation.
+Genomewide_AATTTA=Genomespec$spec[,1]/mean(Genomespec$spec[,1])
+HpyAbound_AATTTA=Boundspec$spec[,1]/mean(Boundspec$spec[,1])
+
+plot(Genomewide_AATTTA,type="l",lty=2,ylim=c(0.75,2.5))
+lines(HpyAbound_AATTTA,lwd=2)
+```
+
+Find where the peak near 10/11bp is present
+``` {r Find_peaks}
+
+Boundspecloc=findpeaks(Boundspec$spec[85:105,1])
+actualBoundspecloc=Boundspecloc[,2]+84
+HpyAboundperiodicity=1/Boundspec$freq[actualBoundspecloc]
+print("HpyAboundperiodicity")
+print(HpyAboundperiodicity)
+```
+
+```{r session}
+sessionInfo()
+```
