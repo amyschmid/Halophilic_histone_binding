@@ -33,11 +33,11 @@ rtracklayer_1.50.0
 AnnotationHub_2.22.1 
 dplyr_1.0.7 
 
-# Peaklocationplots.Rmd
+# Peaklocation_newplot.Rmd
 
-Simple code that generates bar plots from information about whether peaks are coding or intergenic.
+Simple code that generates bar plots from information about percentage of genes in promoter region.
 
-That information is generated from the code above (Annotatepeaksandclassify.Rmd) for multiple proteins (including HstA, HpyA, other halophilic TFs). The output is stored in Peaklocations.xlsx (which is the only Input dependency)
+That information is generated from the code above (Annotatepeaksandclassify.Rmd) for multiple proteins (including HstA, HpyA, other halophilic TFs). The output is stored in Peaklocations.xlsx. Relative enrichment of these peaks in promoter regions was calculated using a hypergeomtric test (results in Table S5 of the paper). These p-values were also added to Peaklocations.xlsx. Finally, the code manually takes in the percentage of the relevant genome that is intergenic.
 
 Library dependencies:
 
