@@ -1,7 +1,7 @@
 # Halophilic_histone_binding
-##R codes used to analyze genome-wide binding using ChIP-Seq
+##This repository contains the R codes used to analyze genome-wide binding using ChIP-Seq
 
-Codes related to the paper: biorxiv.org/ADD WHEN APPROPRIATE
+##Codes related to the paper: biorxiv.org/ADD WHEN APPROPRIATE
 
 ##The codes within the subfolders are R codes written in R 4.0.3. They are reliant on processed files generated from ChIP-Seq sequencing data. Below is a guide for converting raw (fastq) sequencing files into the useful, processed formats (Sorted BAM, wig, perbase txt files):
 
