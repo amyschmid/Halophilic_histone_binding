@@ -1,0 +1,225 @@
+---
+title: "ChIPSeqenrichment_combined"
+author: "Saaz Sakrikar"
+date: "11/11/2021"
+output: html_document
+---
+
+
+Input the Mosaics binned output of ChIP-Seq  of HpyA and HstA (1 representative replicate each).
+Also input regions to be excluded from visualisation: 
+For Hbt Sal: hpyA and ura3 loci which have uneven coverage (at 112 and 1246 kb respectively), and two peaks present in HA tag-alone data (at 166 and 1710kb).
+For Hfx vol: tag-alone peaks at 1598 and 2770kb, and uneven coverage caused by pyrE/hstA locus and a transposase at 301, 1441, and 2665 kb.
+Also Mosaics binned output for representative replicates of: Hca TrmB (Halophilic TF), IHF, FIS, HNS (Bacterial NAPs), FNR (Bacterial TF), and yeast H3 (euk histone).
+
+
+```{r setup,message=FALSE}
+library(readxl)
+library(bazar)
+
+hstA_IP2=read.table("hstAIP2_sorted.bam_fragL200_bin200.txt")
+hstA_WCE2=read.table("hstAWCE2_sorted.bam_fragL200_bin200.txt")
+
+hpyA_IP3=read.table("hpyA_M3_IP_log_sorted.bam_fragL250_bin250.txt")
+hpyA_WCE3=read.table("hpyA_M3_WCE_log_sorted.bam_fragL250_bin250.txt")
+
+Hca_trmB_noglu_IP=read.table("4774_E7_S92_L004_R1_001_trimmed_sorted.bam_fragL200_bin200.txt")
+Hca_trmB_noglu_WCE=read.table("4774_B5_S73_L004_R1_001_trimmed_sorted.bam_fragL200_bin200.txt")
+
+IHF_IP=read.table("IhfA_midlog_sorted.bam_fragL200_bin200.txt")
+HNS_IP=read.table("HnsA_sorted.bam_fragL200_bin200.txt")
+Fis_IP=read.table("FisB_sorted.bam_fragL200_bin200.txt")
+#HU_IP=read.table("HupA_midlog_sorted.bam_fragL200_bin200.txt")
+NAP_WCE=read.table("Mock_sorted.bam_fragL200_bin200.txt")
+
+FNR_IP=read.table("FNR_IP2_sorted.bam_fragL200_bin200.txt")
+FNR_WCE=read.table("Input_anaerobic_sorted.bam_fragL200_bin200.txt")
+
+YeasthistoneIP=read.table("H3log1IP_sorted.bam_fragL200_bin200.txt")
+YeasthistoneWCE=read.table("WCElog1_sorted.bam_fragL200_bin200.txt")
+
+Hvo_chrname="NC_013967.1"
+Hs_chrname="NC_002607.1"
+Hca_chrname="NC_015948.1"
+Ec_chrname="NC_000913.3"
+Sc_chrname="NC_001139.9"
+```
+
+Removing  HA peaks and duplications from HpyA and HstA
+```{r regionstoberemoved}
+Hvo_HApeak1=c(1598000,1599000)
+Hvo_HApeak2=c(2770000,2772000)
+Hvo_Unevencoverage1=c(301000,302600)
+Hvo_Unevencoverage2=c(1441000,1444000)
+Hvo_Unevencoverage3=c(2665000,2666800)
+
+Hs_HApeak1=c(166000,167000)
+Hs_HApeak2=c(1710750,1711250)
+Hs_Unevencoverage1=c(110250,112750)
+Hs_Unevencoverage2=c(1246000,1247000)
+```
+
+Restrict data to main chromosome, get length and location of each gene.
+```{r preliminaries}
+
+hstA_IP2=hstA_IP2[hstA_IP2$V1==paste(Hvo_chrname),]
+hstA_WCE2=hstA_WCE2[hstA_WCE2$V1==paste(Hvo_chrname),]
+
+hpyA_IP3=hpyA_IP3[hpyA_IP3$V1==paste(Hs_chrname),]
+hpyA_WCE3=hpyA_WCE3[hpyA_WCE3$V1==paste(Hs_chrname),]
+
+Hca_trmB_noglu_IP=Hca_trmB_noglu_IP[Hca_trmB_noglu_IP$V1==paste(Hca_chrname),]
+Hca_trmB_noglu_WCE=Hca_trmB_noglu_WCE[Hca_trmB_noglu_WCE$V1==paste(Hca_chrname),]
+
+IHF_IP=IHF_IP[IHF_IP$V1==paste(Ec_chrname),]
+HNS_IP=HNS_IP[HNS_IP$V1==paste(Ec_chrname),]
+Fis_IP=Fis_IP[Fis_IP$V1==paste(Ec_chrname),]
+#HU_IP=HU_IP[HU_IP$V1==paste(Ec_chrname),]
+NAP_WCE=NAP_WCE[NAP_WCE$V1==paste(Ec_chrname),]
+
+FNR_IP=FNR_IP[FNR_IP$V1==paste(Ec_chrname),]
+FNR_WCE=FNR_WCE[FNR_WCE$V1==paste(Ec_chrname),]
+
+YeasthistoneIP=YeasthistoneIP[YeasthistoneIP$V1==paste(Sc_chrname),]
+YeasthistoneWCE=YeasthistoneWCE[YeasthistoneWCE$V1==paste(Sc_chrname),]
+
+```
+
+Normalise IP wignal using WCE
+```{r chipseqenrichment}
+
+hstA_NormalisedIP2=hstA_IP2
+hstA_NormalisedIP2$V3=hstA_NormalisedIP2$V3/hstA_WCE2$V3
+
+hpyA_NormalisedIP3=hpyA_IP3
+hpyA_NormalisedIP3$V3=hpyA_NormalisedIP3$V3/hpyA_WCE3$V3
+
+```
+
+Removing regions of uneven coverage - hpyA and ura3 loci - that skew results. Also removing peaks found in HA tag-alone negative control to better highlight real peaks
+```{r cleanup}
+#Indices of HA peaks/uneven coverage regions
+
+Hvo_HA1index1=which(hstA_NormalisedIP2$V2==Hvo_HApeak1[1])
+Hvo_HA1index2=which(hstA_NormalisedIP2$V2==Hvo_HApeak1[2])
+Hvo_HA2index1=which(hstA_NormalisedIP2$V2==Hvo_HApeak2[1])
+Hvo_HA2index2=which(hstA_NormalisedIP2$V2==Hvo_HApeak2[2])
+Hvo_UC1index1=which(hstA_NormalisedIP2$V2==Hvo_Unevencoverage1[1])
+Hvo_UC1index2=which(hstA_NormalisedIP2$V2==Hvo_Unevencoverage1[2])
+Hvo_UC2index1=which(hstA_NormalisedIP2$V2==Hvo_Unevencoverage2[1])
+Hvo_UC2index2=which(hstA_NormalisedIP2$V2==Hvo_Unevencoverage2[2])
+Hvo_UC3index1=which(hstA_NormalisedIP2$V2==Hvo_Unevencoverage3[1])
+Hvo_UC3index2=which(hstA_NormalisedIP2$V2==Hvo_Unevencoverage3[2])
+
+Hs_HA1index1=which(hpyA_NormalisedIP3$V2==Hs_HApeak1[1])
+Hs_HA1index2=which(hpyA_NormalisedIP3$V2==Hs_HApeak1[2])
+Hs_HA2index1=which(hpyA_NormalisedIP3$V2==Hs_HApeak2[1])
+Hs_HA2index2=which(hpyA_NormalisedIP3$V2==Hs_HApeak2[2])
+Hs_UC1index1=which(hpyA_NormalisedIP3$V2==Hs_Unevencoverage1[1])
+Hs_UC1index2=which(hpyA_NormalisedIP3$V2==Hs_Unevencoverage1[2])
+Hs_UC2index1=which(hpyA_NormalisedIP3$V2==Hs_Unevencoverage2[1])
+Hs_UC2index2=which(hpyA_NormalisedIP3$V2==Hs_Unevencoverage2[2])
+
+
+#Avg enrichment across the chromosome - replace funky values with this one.
+
+hstA2_avgenrichment=mean(hstA_NormalisedIP2$V3[is.finite(hstA_NormalisedIP2$V3)])
+hpyA3_avgenrichment=mean(hpyA_NormalisedIP3$V3[is.finite(hpyA_NormalisedIP3$V3)])
+
+#Replcament of high values caused by HA binding or local depletion with avg genome-wide value.
+
+hstA_NormalisedIP2$V3[Hvo_HA1index1:Hvo_HA1index2]=hstA2_avgenrichment
+hstA_NormalisedIP2$V3[Hvo_HA2index1:Hvo_HA2index2]=hstA2_avgenrichment
+hstA_NormalisedIP2$V3[Hvo_UC1index1:Hvo_UC1index2]=hstA2_avgenrichment
+hstA_NormalisedIP2$V3[Hvo_UC2index1:Hvo_UC2index2]=hstA2_avgenrichment
+hstA_NormalisedIP2$V3[Hvo_UC3index1:Hvo_UC3index2]=hstA2_avgenrichment
+
+hpyA_NormalisedIP3$V3[Hs_HA1index1:Hs_HA1index2]=hpyA3_avgenrichment
+hpyA_NormalisedIP3$V3[Hs_HA2index1:Hs_HA2index2]=hpyA3_avgenrichment
+hpyA_NormalisedIP3$V3[Hs_UC1index1:Hs_UC1index2]=hpyA3_avgenrichment
+hpyA_NormalisedIP3$V3[Hs_UC2index1:Hs_UC2index2]=hpyA3_avgenrichment
+```
+
+
+```{r normaliseothersamples}
+Yeastnormalised=YeasthistoneIP
+Yeastnormalised$V3=YeasthistoneIP$V3/YeasthistoneWCE$V3
+
+IHFnormalised=IHF_IP
+IHFnormalised$V3=IHF_IP$V3/NAP_WCE$V3
+
+Fisnormalised=Fis_IP
+Fisnormalised$V3=Fis_IP$V3/NAP_WCE$V3
+
+HNSnormalised=HNS_IP
+HNSnormalised$V3=HNS_IP$V3/NAP_WCE$V3
+
+# HUnormalised=HU_IP
+# HUnormalised$V3=HU_IP$V3/NAP_WCE$V3
+
+FNRnormalised=FNR_IP
+FNRnormalised$V3=FNR_IP$V3/FNR_WCE$V3
+
+Hca_trmB_normalised=Hca_trmB_noglu_IP
+Hca_trmB_normalised$V3=Hca_trmB_noglu_IP$V3/Hca_trmB_noglu_WCE$V3
+```
+
+Plot ChIP-Seq depth (IP enrichment over WCE)
+```{r plotting,fig.height = 3.2, fig.width = 7}
+
+plot(x=hstA_NormalisedIP2$V2,hstA_NormalisedIP2$V3,type="h",col="cornflowerblue",cex.axis=1.25,font=2,family="sans",xlab=paste(Hvo_chrname,"genome coordinate",sep=" "),ylab="Read depth IP/Input",cex.lab=1.5)
+
+plot(x=hpyA_NormalisedIP3$V2,hpyA_NormalisedIP3$V3,type="h",col="darkblue",cex.axis=1.25,font=2,family="sans",xlab=paste(Hs_chrname,"genome coordinate",sep=" "),ylab="Read depth IP/Input",cex.lab=1.5)
+
+plot(x=Yeastnormalised$V2,Yeastnormalised$V3,type="h",col="red",cex.axis=1.25,font=2,family="sans",xlab=paste(Sc_chrname,"genome coordinate",sep=" "),ylab="Read depth IP/Input",cex.lab=1.5)
+
+plot(x=Fisnormalised$V2,Fisnormalised$V3,type="h",col="khaki4",cex.axis=1.25,font=2,family="sans",xlab=paste(Ec_chrname,"genome coordinate",sep=" "),ylab="Read depth IP/Input",cex.lab=1.5)
+
+plot(x=HNSnormalised$V2,HNSnormalised$V3,type="h",col="black",cex.axis=1.25,font=2,family="sans",xlab=paste(Ec_chrname,"genome coordinate",sep=" "),ylab="Read depth IP/Input",cex.lab=1.5)
+
+plot(IHFnormalised$V2,IHFnormalised$V3,type="h",col="forestgreen",cex.axis=1.25,font=2,family="sans",xlab=paste(Ec_chrname,"genome coordinate",sep=" "),ylab="Read depth IP/Input",cex.lab=1.5)
+
+#plot(HUnormalised$V2,HUnormalised$V3,type="h",col="darksalmon")
+
+plot(FNRnormalised$V2,FNRnormalised$V3,type="h",col="blueviolet",cex.axis=1.25,font=2,family="sans",xlab=paste(Ec_chrname,"genome coordinate",sep=" "),ylab="Read depth IP/Input",cex.lab=1.5)
+
+plot(Hca_trmB_normalised$V2,Hca_trmB_normalised$V3,type="h",col="palevioletred",cex.axis=1.25,font=2,family="sans",xlab=paste(Hca_chrname,"genome coordinate",sep=" "),ylab="Read depth IP/Input",cex.lab=1.5)
+```
+Export plots to PDF
+```{r pdf_plots}
+# pdf("GenomewideChIPSeq_HstA.pdf",height=3.5,width=7)
+# plot(x=hstA_NormalisedIP2$V2,hstA_NormalisedIP2$V3,type="h",col="cornflowerblue",cex.axis=1.25,font=2,family="sans",xlab=paste(Hvo_chrname,"genome coordinate",sep=" "),ylab="Read depth IP/Input",cex.lab=1.5)
+# dev.off()
+# 
+# pdf("GenomewideChIPSeq_HpyA.pdf",height=3.5,width=7)
+# plot(x=hpyA_NormalisedIP3$V2,hpyA_NormalisedIP3$V3,type="h",col="darkblue",cex.axis=1.25,font=2,family="sans",xlab=paste(Hs_chrname,"genome coordinate",sep=" "),ylab="Read depth IP/Input",cex.lab=1.5)
+# dev.off()
+# 
+# pdf("GenomewideChIPSeq_H3.pdf",height=3.5,width=7)
+# plot(x=Yeastnormalised$V2,Yeastnormalised$V3,type="h",col="red",cex.axis=1.25,font=2,family="sans",xlab=paste(Sc_chrname,"genome coordinate",sep=" "),ylab="Read depth IP/Input",cex.lab=1.5)
+# dev.off()
+# 
+# pdf("GenomewideChIPSeq_Fis.pdf",height=3.5,width=7)
+# plot(x=Fisnormalised$V2,Fisnormalised$V3,type="h",col="khaki4",cex.axis=1.25,font=2,family="sans",xlab=paste(Ec_chrname,"genome coordinate",sep=" "),ylab="Read depth IP/Input",cex.lab=1.5)
+# dev.off()
+# 
+# pdf("GenomewideChIPSeq_HNS.pdf",height=3.5,width=7)
+# plot(x=HNSnormalised$V2,HNSnormalised$V3,type="h",col="black",cex.axis=1.25,font=2,family="sans",xlab=paste(Ec_chrname,"genome coordinate",sep=" "),ylab="Read depth IP/Input",cex.lab=1.5)
+# dev.off()
+# 
+# pdf("GenomewideChIPSeq_IHF.pdf",height=3.5,width=7)
+# plot(IHFnormalised$V2,IHFnormalised$V3,type="h",col="forestgreen",cex.axis=1.25,font=2,family="sans",xlab=paste(Ec_chrname,"genome coordinate",sep=" "),ylab="Read depth IP/Input",cex.lab=1.5)
+# dev.off()
+# 
+# pdf("GenomewideChIPSeq_FNR.pdf",height=3.5,width=7)
+# plot(FNRnormalised$V2,FNRnormalised$V3,type="h",col="blueviolet",cex.axis=1.25,font=2,family="sans",xlab=paste(Ec_chrname,"genome coordinate",sep=" "),ylab="Read depth IP/Input",cex.lab=1.5)
+# dev.off()
+# 
+# pdf("GenomewideChIPSeq_HcaTrmB.pdf",height=3.5,width=7)
+# plot(Hca_trmB_normalised$V2,Hca_trmB_normalised$V3,type="h",col="palevioletred",cex.axis=1.25,font=2,family="sans",xlab=paste(Hca_chrname,"genome coordinate",sep=" "),ylab="Read depth IP/Input",cex.lab=1.5)
+# dev.off()
+```
+
+```{r sessioninfo}
+sessionInfo()
+```
