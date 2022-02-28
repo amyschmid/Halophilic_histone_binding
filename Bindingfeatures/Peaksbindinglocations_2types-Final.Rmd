@@ -1,0 +1,83 @@
+---
+title: "ChIP-Seq peaks binary binding location"
+output: html_document
+---
+
+This code is used to classify peak binding locations into 2 categories- coding or intergenic, based on where the centre of the peak lies.
+
+Input files include a list of peaks, the NCBI protein table (list of genes) in xlsx format, a vector containing the names of replicons (chromosomes/plasmids) that have peaks, and a name (to name the output file).
+
+Output is a matrix with 1 row corresponding to each peak, containing the replicon it is from, the peak centre, its classification (inter vs coding), and if it's coding, the gene it is found within.
+
+```{r setup, warning=FALSE,message=FALSE}
+suppressPackageStartupMessages(library(installr))
+suppressPackageStartupMessages(library(readxl))
+suppressPackageStartupMessages(library(openxlsx))
+
+Name="Hfxvol_hstA"
+Hits=read_excel("TableS2_HstA_curated_peaklist.xlsx",sheet = "List")
+NCBIProteintable=read_excel("proteins_1149_170797.xlsx")
+chrnames=c("NC_013964.1","NC_013966.1","NC_013967.1")
+```
+
+
+```{r determinelocations}
+nchr=length(chrnames)
+
+#Setting up the output matrix
+outputmatrix=as.data.frame(matrix(nrow=1,ncol=4))
+colnames(outputmatrix)=c("Chromosome","Peakcentre","Location","Gene")
+
+#Code goes per-replicon (chromosome or plasmid)
+
+for (i in (1:nchr)) {
+  #Restricting data to one replicon
+  Hits_replicon=Hits[Hits$Replicon==chrnames[i],]
+  Genes=NCBIProteintable[NCBIProteintable$Accession==chrnames[i],]
+  
+  #Getting peak centres
+  Peakstarts=Hits_replicon$Peakstart
+  Peakstops=Hits_replicon$Peakstop
+  Peaks=cbind(Peakstarts,Peakstops)
+  Peakcentres=rowMeans(Peaks)
+  
+  #Setting up output matrix for this replicon
+  l=length(Peakcentres)
+  chroutput=as.data.frame(matrix(nrow=l,ncol=4))
+  colnames(chroutput)=c("Chromosome","Peakcentre","Location","Gene")
+  
+  chroutput$Chromosome=chrnames[i]
+  chroutput$Peakcentre=Peakcentres
+  
+  #Determining if each peak is intergenic or coding. If a gene is common in a (the peak is after the gene's start) and b (the peak is before the gene's stop), that  means the peak lies within that gene. This is what the intersect command tells us.
+  for (j in (1:l)) {
+    a=which((chroutput$Peakcentre[j]-Genes$Start)>0)
+    b=which((chroutput$Peakcentre[j]-Genes$Stop)<0)
+    genehits=intersect(a,b)
+    if (is.empty(genehits)) {
+      chroutput$Location[j]="Intergenic"
+    } else {
+      chroutput$Location[j]="Coding"
+      chroutput$Gene[j]=Genes$`Locus tag`[genehits]
+    }
+  }
+  outputmatrix=rbind(outputmatrix,chroutput)
+}
+
+#First line is blank.
+outputmatrix=outputmatrix[-1,]
+```
+
+Display output table and summary of results, export a table with this output
+
+```{r display}
+head(outputmatrix)
+
+table(outputmatrix$Location)
+
+write.xlsx(outputmatrix,paste(Name,"_peaklocations.xlsx",sep=""),overwrite=TRUE)
+```
+
+```{r sessionfo}
+sessionInfo()
+```

@@ -1,0 +1,45 @@
+---
+title: "Peakfeatures_graphs"
+author: "Saaz Sakrikar"
+date: "11/13/2021"
+output: html_document
+---
+
+Creates dot plots comparing avg peak width and%age of the genome covered by peaks, for halophilic histones vs halophilic TFs vs bacterial TFs vs bacterial NAPs.
+Restricted to those where I could make reliable peak lists using Mosaics.
+Avg peak widths and area covered by peaks is obtained simply using Excel and stored in Table S3 (which is the input for this code).
+
+```{r setup}
+library(readxl)
+library(ggplot2)
+
+Peakcharacteristics=read_excel("TableS3_peakcharacteristics.xlsx",sheet = "TableS3")
+```
+
+
+```{r plotting}
+#Average widfth of peaks
+ggplot(Peakcharacteristics,aes(x=Type_of_protein,y=Avg_width)) + geom_dotplot(alpha=0.8,binaxis="y",stackdir="center",aes(fill=Protein,color=Protein)) + stat_summary(fun=median,fun.min=median,fun.max=median,geom="crossbar",width=0.5) + theme_bw() + scale_fill_manual(values=c("khaki4","blueviolet","black","darkblue","cornflowerblue","forestgreen","palevioletred","palevioletred","palevioletred")) + scale_color_manual(values=c("khaki4","blueviolet","black","darkblue","cornflowerblue","forestgreen","palevioletred","palevioletred","palevioletred")) + ylim(c(0,2000)) + ggtitle("Avg width of ChIP-Seq peaks") + xlab("Type of protein") + ylab("Avg width (bp)") + theme(axis.text=element_text(family="sans",size=12,face="bold"),axis.text.x=element_text(size=10),axis.title=element_text(family="sans",size=14,face="bold"))
+
+#Percentage of genome covered by binding peaks
+ggplot(Peakcharacteristics,aes(x=Type_of_protein,y=Percent_covered)) + geom_dotplot(alpha=0.8,binaxis="y",binwidth=1,stackdir="center",aes(fill=Protein,color=Protein)) + stat_summary(fun=median,fun.min=median,fun.max=median,geom="crossbar",width=0.5) + theme_bw()+ylim(c(0,25)) + scale_fill_manual(values=c("khaki4","blueviolet","black","darkblue","cornflowerblue","forestgreen","palevioletred","palevioletred","palevioletred")) + scale_color_manual(values=c("khaki4","blueviolet","black","darkblue","cornflowerblue","forestgreen","palevioletred","palevioletred","palevioletred")) + ggtitle("Total area under ChIP-Seq peaks") + xlab("Type of protein") + ylab("Percentage of genome covered by peaks") + theme(axis.text=element_text(family="sans",size=12,face="bold"),axis.text.x=element_text(size=10),axis.title=element_text(family="sans",size=14,face="bold"))
+```
+Export plots to PDF
+```{r pdf_export}
+#pdf("Peak_width.pdf",height=4,width=6)
+
+#Average widfth of peaks
+#ggplot(Peakcharacteristics,aes(x=Type_of_protein,y=Avg_width)) + geom_dotplot(alpha=0.8,binaxis="y",stackdir="center",aes(fill=Protein,color=Protein)) + stat_summary(fun=median,fun.min=median,fun.max=median,geom="crossbar",width=0.5) + theme_bw() + scale_fill_manual(values=c("khaki4","blueviolet","black","darkblue","cornflowerblue","forestgreen","palevioletred","palevioletred","palevioletred")) + scale_color_manual(values=c("khaki4","blueviolet","black","darkblue","cornflowerblue","forestgreen","palevioletred","palevioletred","palevioletred")) + ylim(c(0,2000)) + ggtitle("Avg width of ChIP-Seq peaks") + xlab("Type of protein") + ylab("Avg width (bp)") + theme(axis.text=element_text(family="sans",size=12,face="bold"),axis.text.x=element_text(size=10),axis.title=element_text(family="sans",size=14,face="bold"))
+#dev.off()
+
+#pdf("Peak_coverage.pdf",height=4,width=6)
+#Percentage of genome covered by binding peaks
+#ggplot(Peakcharacteristics,aes(x=Type_of_protein,y=Percent_covered)) + geom_dotplot(alpha=0.8,binaxis="y",binwidth=1,stackdir="center",aes(fill=Protein,color=Protein)) + stat_summary(fun=median,fun.min=median,fun.max=median,geom="crossbar",width=0.5) + theme_bw()+ylim(c(0,25)) + scale_fill_manual(values=c("khaki4","blueviolet","black","darkblue","cornflowerblue","forestgreen","palevioletred","palevioletred","palevioletred")) + scale_color_manual(values=c("khaki4","blueviolet","black","darkblue","cornflowerblue","forestgreen","palevioletred","palevioletred","palevioletred")) + ggtitle("Total area under ChIP-Seq peaks") + xlab("Type of protein") + ylab("%age of genome covered by peaks") + theme(axis.text=element_text(family="sans",size=12,face="bold"),axis.text.x=element_text(size=10),axis.title=element_text(family="sans",size=14,face="bold"))
+
+#dev.off()
+```
+
+
+```{r session}
+sessionInfo()
+```
