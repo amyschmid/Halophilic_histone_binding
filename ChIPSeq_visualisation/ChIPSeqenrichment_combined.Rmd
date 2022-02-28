@@ -14,8 +14,8 @@ Also Mosaics binned output for representative replicates of: Hca TrmB (Halophili
 
 
 ```{r setup,message=FALSE}
-library(readxl)
-library(bazar)
+#library(readxl)
+#library(bazar)
 
 hstA_IP2=read.table("hstAIP2_sorted.bam_fragL200_bin200.txt")
 hstA_WCE2=read.table("hstAWCE2_sorted.bam_fragL200_bin200.txt")
