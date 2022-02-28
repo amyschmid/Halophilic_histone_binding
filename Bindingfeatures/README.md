@@ -10,8 +10,8 @@ Library depepdency: ggplot2_3.3.5 readxl_1.3.1
 
 Takes a peak list and finds the centre of each peak. Then detrermines if this centre lies within a coding region (as determined by NCBI protein table, saved as excel file), or not.
 
-Library dependencies:
-installr, readxl, openxlsx
+Input dependency: TableS2_HstA_curated_peaklist.xlsx
+Library dependencies: installr_0.23.2, readxl_1.3.1, openxlsx_4.2.4
 
 # Peaklocation_newplot.Rmd
 
