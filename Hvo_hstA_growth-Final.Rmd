@@ -1,0 +1,174 @@
+---
+title: "Hvo_hstA_growth_Dec2021-AKS"
+output:
+  html_document:
+    df_print: paged
+---
+
+Plot growth curves of blank-corrected growth data, analyse area under the curve using grofit, and plot the resultant analysis as a boxplot.
+Input is growth data from 4 different bioscreen runs, each containing 3 biological replicates and 2-3 technical reps per biorep, of OD600 data of hstA KO (Hv253) and parent WT (Hv28) in optimal media (HvYPC-18%).
+Colour scheme throughout: blue=Hv28=parent=WT; red=Hv253=hstA=KO. 
+Since area under the curve is being compared, I took care to cut off the data early into stationary phase (timestop=50 hrs) in order to not bias the results with a slightly different final OD in stat phase.
+
+
+```{r loading,message=FALSE,warning=FALSE}
+library(ggplot2)
+library(forcats)
+library(ggsignif)
+library(grofit)
+library(openxlsx)
+library(readxl)
+library(reshape2)
+
+Growthtable=read_excel("TableS1-growth.xlsx")
+
+#Information regarding strain names and run identifiers, used to separate data as needed.
+Strains=c("Hv28","Hv253")
+Runs=c("J17","F9","M11","A14")
+timestop=50
+```
+
+Converting data into a form which can be plotted - melting, removing tiny values, adding strain information.
+```{r growthcurveprocessing}
+
+Growthtablemelted=melt(Growthtable,id.vars="Time")
+l1=length(Growthtablemelted$Time)
+
+#Removing negative and very small positive values to allow plotting on log scale.
+for (i in (1:l1)) {
+  if (Growthtablemelted$value[i]<0.01) {
+    Growthtablemelted$value[i]=0.01
+  }
+}
+
+#Making a column with strain identifiers
+l2=length(Strains)
+strainvector=vector(length=l1)
+strainvector=as.character(strainvector)
+for (i in (1:l2)) {
+  relrows=grep(Strains[i],Growthtablemelted$variable)
+  strainvector[relrows]=Strains[i]
+}
+
+#Merging the column with  existing melted matrix
+
+Growthtablemelted=cbind(Growthtablemelted,strainvector)
+colnames(Growthtablemelted)=c("Time","variable","OD","Strain")
+```
+
+
+Plotting mean growth data prepared above. Semi-log plot. Figure 1A
+
+```{r Curveplotting,warning=FALSE,message=FALSE}
+#pdf("Fig1A-growthcurve-means.pdf", height = 4, width = 6)
+
+ggplot(Growthtablemelted,aes(x=Time,y=OD,colour=Strain)) +   scale_colour_manual(values=c("red","cadetblue3")) + 
+  scale_fill_manual(values=c("red","cadetblue3")) +
+  geom_smooth(se=TRUE,level=0.99,aes(col=Strain,fill=Strain)) +
+  theme_bw() + 
+  # geom_line(size=0.1,alpha=0.35,aes(group=variable)) + 
+  xlim(c(0,timestop)) + 
+  scale_y_log10() + 
+ # ggtitle("OD vs time - semi-log plot") + 
+  xlab("Time (h)") + 
+  ylab("OD600") + 
+  theme(axis.text=element_text(family="sans",size=16,face="bold"),axis.title=element_text(family="sans",size=20,face="bold"))
+
+#dev.off()
+```
+
+Plotting raw growth data traces. Semi-log plot. Figure S1A
+
+```{r Curveplotting,warning=FALSE,message=FALSE}
+#pdf("FigS1A-growthcurve-raw.pdf", height = 4, width = 6)
+
+ggplot(Growthtablemelted,aes(x=Time,y=OD,colour=Strain)) +   scale_colour_manual(values=c("red","cadetblue3")) + 
+  scale_fill_manual(values=c("red","cadetblue3")) +
+  #geom_smooth(se=TRUE,level=0.99,aes(col=Strain,fill=Strain)) +
+  theme_bw() + 
+   geom_line(size=0.5,alpha=0.6,aes(group=variable)) + 
+  xlim(c(0,timestop)) + 
+  scale_y_log10() + 
+ # ggtitle("OD vs time - semi-log plot") + 
+  xlab("Time (h)") + 
+  ylab("OD600") + 
+  theme(axis.text=element_text(family="sans",size=12,face="bold"),axis.title=element_text(family="sans",size=14,face="bold"))
+
+#dev.off()
+```
+
+Preparing data as input into Grofit.
+```{r grofitsetup}
+#Separate OD from time data, get matrix transpose.
+ODonly=Growthtable[,-1]
+
+rowstop=timestop*2
+rowstop=rowstop+1
+
+ODonly_tstop=ODonly[1:rowstop,]
+ODonly=t(ODonly)
+ODonly_tstop=t(ODonly_tstop)
+
+l3=length(ODonly[,1])
+l3_tstop=length(ODonly_tstop[,1])
+
+#3 rows of metadat required - full replicate info, strain, and batch.
+Grofitmetadata=as.data.frame(matrix(nrow=l3,ncol=3))
+Grofitmetadata[,1]=rownames(ODonly)
+
+#Adding strain info
+for (i in (1:l2)) {
+  relrows=grep(Strains[i],Grofitmetadata[,1])
+  Grofitmetadata[relrows,2]=Strains[i]
+}
+
+#Adding batch info
+l4=length(Runs)
+for (i in (1:l4)) {
+  relrows=grep(Runs[i],Grofitmetadata[,1])
+  Grofitmetadata[relrows,3]=Runs[i]
+}
+
+#Putting together the matrix with metadata and OD data.
+Grofitdatainput=cbind(Grofitmetadata,ODonly)
+Grofitdatainput_tstop=cbind(Grofitmetadata,ODonly_tstop)
+
+
+#Separate time matrix
+l5=length(ODonly[1,])
+l5_tstop=length(ODonly_tstop[1,])
+Grofittimeinput=as.data.frame(matrix(nrow=l3,ncol=l5))
+Grofittimeinput_tstop=as.data.frame(matrix(nrow=l3,ncol=l5_tstop))
+
+for (i in (1:l3)) {
+  Grofittimeinput[i,]=Growthtable$Time
+  Grofittimeinput_tstop[i,]=Growthtable$Time[1:rowstop]
+}
+```
+
+Measure area under curve using grofit, logistic model. log.y.gc option is used, meaning it is area  under curve in log-scale y-axis.
+```{r Grofit}
+Logisticmodelrates_tstop=gcFit(Grofittimeinput_tstop,Grofitdatainput_tstop,grofit.control(interactive=FALSE,log.y.gc = TRUE,model.type="logistic",suppress.messages=TRUE))
+```
+
+Visualise AUC distribution for hstA v WT
+```{r Boxplot}
+Grofitoutput_tstop=Logisticmodelrates_tstop$gcTable
+
+#pdf("AUC-standard.pdf", height = 4, width = 6)
+ggplot(Grofitoutput_tstop,aes(x=fct_rev(AddId),y=integral.model)) + 
+  geom_jitter(width=0.2,aes(color=AddId)) + 
+  stat_summary(fun=median,geom="crossbar",alpha=0.3,width=0.5,aes(color=AddId)) + 
+  scale_color_manual(values=c("red","cadetblue3")) + 
+  geom_signif(data=Grofitoutput_tstop,comparisons = list(c("Hv253","Hv28")),test="t.test",map_signif_level=TRUE) + 
+  ggtitle("Area under semi-log curve vs genotype") + 
+  theme_bw() + 
+  xlab("Strain") + 
+  ylab("AUC") + 
+  theme(axis.text=element_text(family="sans",size=12,face="bold"),axis.title=element_text(family="sans",size=14,face="bold"))
+#dev.off()
+```
+
+```{r sessioninfo}
+sessionInfo()
+```

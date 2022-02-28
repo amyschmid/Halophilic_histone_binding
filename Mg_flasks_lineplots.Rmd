@@ -1,0 +1,41 @@
+---
+title: "Mg_flasks_lineplots"
+author: "Saaz Sakrikar"
+date: "2/28/2022"
+output: html_document
+---
+
+Growth data for hstA and WT (2 biol replicates each) grown in in regular (0.3M), reduced (0.18M), and high (0.48M) Mg in a flask, with manual OD measurements taken during the growth curve.
+Each of the resultant growth curves is plotted together on a semi-log plot.
+
+```{r setup}
+library(ggplot2)
+library(reshape2)
+library(readxl)
+library(stringr)
+```
+
+
+```{r load_data,warning=FALSE,message=FALSE}
+Mgflaskdata=read_excel("Mgflask_Rinput.xlsx")
+```
+
+Prepare data for plotting
+
+```{r melt}
+Mgflaskdata_melted=melt(Mgflaskdata,id.vars="Time")
+Condition=str_sub(Mgflaskdata_melted$variable,1,nchar(as.character(Mgflaskdata_melted$variable))-2)
+Mgflaskdata_melted$Condition=Condition
+```
+
+Plot data (semi-log plot)
+
+```{r plot}
+#pdf("Mg-lines", height = 4, width = 6)
+ggplot(Mgflaskdata_melted,aes(x=Time,y=value,colour=Condition))+theme_bw()+scale_y_log10()+geom_line(size=1.25,alpha=0.5,aes(group=variable))+scale_color_manual(values=c("red","blue","firebrick","darkviolet","lightcoral","cadetblue3"))
+#dev.off()
+```
+
+```{sessionInfo}
+sessionInfo()
+```
