@@ -1,5 +1,5 @@
 # Halophilic_histone_binding
-##This repository contains the R codes used to analyze genome-wide binding using ChIP-Seq
+## This repository contains the R codes used to analyze genome-wide binding using ChIP-Seq
 
 ##Codes related to the paper: biorxiv.org/ADD WHEN APPROPRIATE
 
