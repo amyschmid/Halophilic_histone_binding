@@ -1,5 +1,7 @@
-# Halophilic_histone_binding
-* This repository contains the R codes used to analyze genome-wide binding using ChIP-Seq
+# Haloarchaeal histone proteins blur the distinction between transcription factors and nucleoid-associated proteins
+Saaz Sakrikar, Rylee Hackley, Mar Martinez-Pastor, Cynthia Darnell, Angie Vreugdenhil, Amy Schmid
+
+* This repository contains the R codes used to analyze genome-wide binding of halophilic histones using ChIP-Seq
 * Codes related to the paper: biorxiv.org/ADD WHEN APPROPRIATE
 * The codes within the subfolders are R codes written in R 4.0.3. They are reliant on processed files generated from ChIP-Seq sequencing data. Below is a guide for converting raw (fastq) sequencing files into the useful, processed formats (Sorted BAM, wig, perbase txt files):
 
