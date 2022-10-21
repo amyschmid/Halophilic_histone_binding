@@ -1,0 +1,109 @@
+---
+title: "Peakfeatures_graphs"
+author: "Saaz Sakrikar"
+date: "11/13/2021"
+output: html_document
+---
+
+Creates dot plots comparing avg peak width and%age of the genome covered by peaks, for halophilic histones vs halophilic TFs vs bacterial TFs vs bacterial NAPs.
+Restricted to those where I could make reliable peak lists using Mosaics.
+Avg peak widths and area covered by peaks is obtained simply using Excel and stored in Table S3 (which is the input for this code).
+
+```{r setup}
+#load required packages
+library(readxl)
+library(ggplot2)
+library(forcats)
+library(gridExtra)
+
+#load input files
+Peakcharacteristics=read_excel("TableS3_peakcharacteristics_Jul152022.xlsx",sheet = "TableS3")
+
+Peaklocations_pval=read_excel("TableS4_hypergeometric_Jul152022.xlsx")
+
+#Providing %age of the genome that is intergenic.
+Hbt_inter=13.3
+Hvo_inter=15.9
+Hmed_inter=15.7
+Hca_inter=14.1
+Ec_inter=14.2
+Sc_inter=26.6
+
+
+```
+
+# Plotting for Figure 2, main manuscript
+```{r plotting}
+#set the colors
+my.colors<- c(Lrp = "darkorange", Bacterial_TF = "blueviolet",Euk_TF = "tan4",FIS = "khaki3",Halophilic_TF = "palevioletred",HNS = "black",HpyA = "darkblue",HstA = "cornflowerblue",IHF = "forestgreen")
+
+#Average width of peaks
+fig2b <- ggplot(Peakcharacteristics,aes(x=fct_inorder(Domain),y=Avg_width)) + 
+  geom_dotplot(alpha=0.8,binaxis="y",  stackdir="center",aes(fill=Specific_classification,color=Specific_classification)) + 
+  stat_summary(fun=median,fun.min=median,fun.max=median,geom="crossbar",colour = "grey60", width=0.35, alpha = 0.5)+ 
+  theme_bw() + 
+  scale_fill_manual(values = my.colors) + 
+  scale_color_manual(values= my.colors) + 
+  ylim(c(0,2000)) + 
+  ggtitle("A") + 
+  xlab("Domain of life") + 
+  ylab("Avg width (bp)") + 
+  theme(axis.text=element_text(family="sans",size=12,face="bold"),axis.text.x=element_text(size=10),axis.title=element_text(family="sans",size=14,face="bold"))
+
+#Percentage of genome covered by binding peaks
+fig2a <- ggplot(Peakcharacteristics,aes(x=fct_inorder(Domain),y=Percent_covered)) + geom_dotplot(alpha=0.7,binaxis="y",binwidth=1,stackdir="center",aes(fill=Specific_classification,color=Specific_classification)) + 
+  stat_summary(fun=median,fun.min=median,fun.max=median,geom="crossbar",colour = "grey60", width=0.35, alpha = 0.5) + 
+  theme_bw() + 
+  ylim(c(0,25)) + 
+  scale_fill_manual(values= my.colors) + 
+  scale_color_manual(values= my.colors) + 
+  ggtitle("B") + 
+  xlab("Domain of life") + 
+  ylab("Percentage of genome covered by peaks") + 
+  theme(axis.text=element_text(family="sans",size=12,face="bold"),axis.text.x=element_text(size=10),axis.title=element_text(family="sans",size=14,face="bold"))
+
+
+#Ordered by value
+fig2c <-
+ggplot(Peaklocations_pval,aes(y=percentinter,x=reorder(TF,percentinter))) + 
+  geom_bar(aes(fill=Hypergeom_p),stat="identity") + 
+  geom_segment(x=0.5,xend=1.5,y=Hbt_inter,yend=Hbt_inter,colour="red",size=2,lty=6) + 
+  geom_segment(x=1.5,xend=2.5,y=Hvo_inter,yend=Hvo_inter,colour="red",size=2,lty=6) +
+geom_segment(x=2.5,xend=3.5,y=Ec_inter,yend=Ec_inter,colour="red",size=2,lty=6) + 
+  geom_segment(x=3.5,xend=4.5,y=Ec_inter,yend=Ec_inter,colour="red",size=2,lty=6) + 
+  geom_segment(x=4.5,xend=5.5,y=Hca_inter,yend=Hca_inter,colour="red",size=2,lty=6) + 
+  geom_segment(x=5.5,xend=6.5,y=Hvo_inter,yend=Hvo_inter,colour="red",size=2,lty=6) +
+  geom_segment(x=6.5,xend=7.5,y=Hca_inter,yend=Hca_inter,colour="red",size=2,lty=6) + 
+  geom_segment(x=7.5,xend=8.5,y=Hmed_inter,yend=Hmed_inter,colour="red",size=2,lty=6) + 
+geom_segment(x=8.5,xend=9.5,y=Ec_inter,yend=Ec_inter,colour="red",size=2,lty=6) +
+geom_segment(x=9.5,xend=10.5,y=Hvo_inter,yend=Hvo_inter,colour="red",size=2,lty=6) +
+geom_segment(x=10.5,xend=11.5,y=Ec_inter,yend=Ec_inter,colour="red",size=2,lty=6) +
+geom_segment(x=11.5,xend=12.5,y=Ec_inter,yend=Ec_inter,colour="red",size=2,lty=6) +
+geom_segment(x=12.5,xend=13.5,y=Sc_inter,yend=Sc_inter,colour="red",size=2,lty=6) +
+geom_segment(x=13.5,xend=14.5,y=Sc_inter,yend=Sc_inter,colour="red",size=2,lty=6) + 
+  theme_bw() + 
+  ylim(c(0,100)) + 
+  ggtitle("C") + 
+  xlab("Transcription Factor") + 
+  ylab("Percentage intergenic") + 
+  theme(axis.text=element_text(family="sans",size=12,face="bold"),axis.text.x=element_text(family="sans",size=12,face="bold", hjust = 1, angle = 45),axis.title=element_text(family="sans",size=14,face="bold"))
+
+pdf("fig2-pkfeatures-compiled-Sept2022.pdf", height = 11, width = 8)
+grid.arrange (fig2a, fig2b, fig2c, nrow = 3)
+dev.off()
+
+
+```
+
+
+
+
+
+
+
+
+```{r session}
+sessionInfo()
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

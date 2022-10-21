@@ -1,0 +1,61 @@
+---
+title: "Peakfeatures_graphs"
+author: "Saaz Sakrikar"
+date: "11/13/2021"
+output: html_document
+---
+
+Creates dot plots comparing avg peak width and%age of the genome covered by peaks, for halophilic histones vs halophilic TFs vs bacterial TFs vs bacterial NAPs.
+Restricted to those where I could make reliable peak lists using Mosaics.
+Avg peak widths and area covered by peaks is obtained simply using Excel and stored in Table S3 (which is the input for this code).
+
+```{r setup}
+library(readxl)
+library(ggplot2)
+library(forcats)
+
+Peakcharacteristics=read_excel("TableS3_peakcharacteristics_revisedpaper.xlsx",sheet = "TableS3")
+```
+
+
+```{r plotting}
+#set the colors
+my.colors<- c(Bacterial_ambiguous = "darkorange", Bacterial_TF = "blueviolet",Euk_TF = "tan4",FIS = "khaki3",Halophilic_TF = "palevioletred",HNS = "black",HpyA = "darkblue",HstA = "cornflowerblue",IHF = "forestgreen")
+
+#Average width of peaks
+pdf("fig3a-width-aks.pdf", width = 6, height= 4)
+ggplot(Peakcharacteristics,aes(x=fct_inorder(General_classification),y=Avg_width)) + 
+  geom_dotplot(alpha=0.8,binaxis="y", binwidth = 40, stackdir="center",aes(fill=Specific_classification,color=Specific_classification)) + 
+  stat_summary(fun=median,fun.min=median,fun.max=median,geom="crossbar",colour = "grey60", width=0.35, alpha = 0.5)+ 
+  theme_bw() + 
+  scale_fill_manual(values = my.colors) + 
+  scale_color_manual(values= my.colors) + 
+  ylim(c(0,2000)) + 
+  ggtitle("Avg width of ChIP-Seq peaks") + 
+  xlab("Type of protein") + 
+  ylab("Avg width (bp)") + 
+  theme(axis.text=element_text(family="sans",size=12,face="bold"),axis.text.x=element_text(size=10),axis.title=element_text(family="sans",size=14,face="bold"))
+dev.off()
+
+#Percentage of genome covered by binding peaks
+pdf("fig3b-pct-covrd-aks.pdf", width = 6, height = 4)
+ggplot(Peakcharacteristics,aes(x=fct_inorder(General_classification),y=Percent_covered)) + geom_dotplot(alpha=0.7,binaxis="y",binwidth=0.5,stackdir="center",aes(fill=Specific_classification,color=Specific_classification)) + 
+  stat_summary(fun=median,fun.min=median,fun.max=median,geom="crossbar",colour = "grey60", width=0.35, alpha = 0.5) + 
+  theme_bw() + 
+  ylim(c(0,25)) + 
+  scale_fill_manual(values= my.colors) + 
+  scale_color_manual(values= my.colors) + 
+  ggtitle("Total area under ChIP-Seq peaks") + 
+  xlab("Type of protein") + 
+  ylab("Percentage of genome covered by peaks") + 
+  theme(axis.text=element_text(family="sans",size=12,face="bold"),axis.text.x=element_text(size=10),axis.title=element_text(family="sans",size=14,face="bold"))
+dev.off()
+```
+
+
+
+```{r session}
+sessionInfo()
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
