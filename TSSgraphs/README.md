@@ -6,5 +6,7 @@ It requires the R codes uploaded here: automatedTSSanalysis.R, getTSSdata5.R, an
 
 Input files are perbase .txt files containing read depth at each position of the genome (made as described in the readme of the parent directory). The final input is the NCBI protein table .txt file was taken and saved as a .xlsx (uploaded here for Hbt sal NRC-1, S cerevisiae S288C, Hca his ATCC33960). Further details of NCBI files used are in Table S2 of the paper.
 
+Per base files needed for input are available upon request (too large to upload to GitHub).
+
 Library dependencies:
 viridis_0.5.1 ggplot2_3.3.5 pheatmap_1.0.12 fastcluster_1.2.3
